@@ -35,15 +35,18 @@ public class AuthController {
 
     @PostMapping("/sent/login-signup-otp")
     public ResponseEntity<ApiResponse> sentOtpHandler(@RequestBody LoginOtpRequest req) throws Exception {
+
        authService.sentLoginOtp(req.getEmail(),req.getRole());
+
         ApiResponse res =new ApiResponse();
+
         res.setMessage("otp sent  success");
 
         return ResponseEntity.ok(res);
     }
 
     @PostMapping("/signing")
-    public ResponseEntity<AuthResponse>loginHandler(@RequestBody LoginRequest req){
+    public ResponseEntity<AuthResponse>loginHandler(@RequestBody LoginRequest req) throws Exception {
         AuthResponse authResponse = authService.siging(req);
         return  ResponseEntity.ok(authResponse);
     }
