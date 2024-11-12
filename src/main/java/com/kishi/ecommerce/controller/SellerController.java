@@ -1,6 +1,7 @@
 package com.kishi.ecommerce.controller;
 
 import com.kishi.ecommerce.domain.AccountStatus;
+import com.kishi.ecommerce.exceptions.SellerException;
 import com.kishi.ecommerce.model.Seller;
 import com.kishi.ecommerce.model.VerificationCode;
 import com.kishi.ecommerce.repository.SellerRepository;
@@ -113,7 +114,7 @@ public class SellerController {
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<Seller> getSellerById(@PathVariable Long id)throws Exception{
+    public ResponseEntity<Seller> getSellerById(@PathVariable Long id)throws SellerException {
         Seller seller = sellerService.getSellerById(id);
         return new ResponseEntity<>(seller,HttpStatus.OK);
     }

@@ -3,6 +3,7 @@ package com.kishi.ecommerce.service.impl;
 import com.kishi.ecommerce.config.JwtProvider;
 import com.kishi.ecommerce.domain.AccountStatus;
 import com.kishi.ecommerce.domain.USER_ROLE;
+import com.kishi.ecommerce.exceptions.SellerException;
 import com.kishi.ecommerce.model.Address;
 import com.kishi.ecommerce.model.Seller;
 import com.kishi.ecommerce.repository.AddressRepository;
@@ -56,8 +57,8 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public Seller getSellerById(Long id) throws Exception {
-       return sellerRepository.findById(id).orElseThrow(()->new Exception("seller not found with id"+id));
+    public Seller getSellerById(Long id) throws SellerException {
+       return sellerRepository.findById(id).orElseThrow(()->new SellerException("seller not found with id"+id));
     }
 
     @Override
