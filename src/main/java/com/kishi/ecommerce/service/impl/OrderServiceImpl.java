@@ -1,18 +1,17 @@
 package com.kishi.ecommerce.service.impl;
 
 import com.kishi.ecommerce.domain.OrderStatus;
-import com.kishi.ecommerce.model.Address;
-import com.kishi.ecommerce.model.Cart;
-import com.kishi.ecommerce.model.Order;
-import com.kishi.ecommerce.model.User;
+import com.kishi.ecommerce.domain.PaymentStatus;
+import com.kishi.ecommerce.model.*;
 import com.kishi.ecommerce.repository.AddressRepository;
+import com.kishi.ecommerce.repository.OrderItemRepository;
 import com.kishi.ecommerce.repository.OrderRepository;
 import com.kishi.ecommerce.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -21,6 +20,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final AddressRepository addressRepository;
+    private final OrderItemRepository orderItemRepository;
 
     @Override
     public Set<Order> createOrder(User user, Address shippingAddress, Cart cart) {
@@ -29,32 +29,88 @@ public class OrderServiceImpl implements OrderService {
         }
         Address address = addressRepository.save(shippingAddress);
 
+        Map<Long,List<CartItem>> itemsBySeller = cart.getCartItem().stream()
+                .collect(Collectors.groupingBy(item->item.getProduct()
+                        .getSeller().getId()));
+        Set<Order> orders =new HashSet<>();
 
-        return null;
+        for(Map.Entry<Long,List<CartItem>> entry : itemsBySeller.entrySet()){
+            Long sellerId=entry.getKey();
+            List<CartItem>items=entry.getValue();
+
+            int totalOrderPrice = items.stream().mapToInt(
+                    CartItem::getSellingPrice
+            ).sum();
+            int totalItem = items.stream().mapToInt(CartItem::getQuantity).sum();
+            Order createdOrder = new Order();
+            createdOrder.setUser(user);
+            createdOrder.setSellerId(sellerId);
+            createdOrder.setTotalMrpPrice(totalOrderPrice);
+            createdOrder.setTotalSellingPrice(totalOrderPrice);
+            createdOrder.setTotalItem(totalItem);
+            createdOrder.setShippingAddress(address);
+            createdOrder.setOrderStatus(OrderStatus.PENDING);
+            createdOrder.getPaymentDetails().setStatus(PaymentStatus.PENDING);
+
+            Order savedOrder=orderRepository.save(createdOrder);
+            orders.add(savedOrder);
+
+            List<OrderItem> orderItems =new ArrayList<>();
+
+            for (CartItem item : items){
+                OrderItem orderItem =new OrderItem();
+                orderItem.setOrder(savedOrder);
+                orderItem.setMrpPrice(item.getMrpPrice());
+                orderItem.setProduct((item.getProduct()));
+                orderItem.setQuantity(item.getQuantity());
+                orderItem.setSize(item.getSize());
+                orderItem.setUserId(item.getUserId());
+                orderItem.setSellingPrice(item.getSellingPrice());
+
+                savedOrder.getOrderItems().add(orderItem);
+
+                OrderItem saveOrderItem = orderItemRepository.save(orderItem);
+                orderItems.add(saveOrderItem);
+            }
+        }
+
+        return orders;
     }
 
     @Override
-    public Order findOrderByIs(Long id) {
-        return null;
+    public Order findOrderById(Long id) throws Exception {
+        return orderRepository.findById(id).orElseThrow(()->new Exception(("order not found")));
     }
 
     @Override
     public List<Order> usersOrderHistory(Long userId) {
-        return null;
+        return orderRepository.findByUserId(userId);
     }
 
     @Override
     public List<Order> sellerOrder(Long sellerId) {
-        return null;
+        return orderRepository.findBySellerId(sellerId);
     }
 
     @Override
-    public Order updateOrderStatus(Long OrderId, OrderStatus status) {
-        return null;
+    public Order updateOrderStatus(Long OrderId, OrderStatus status) throws Exception {
+        Order order=findOrderById(OrderId);
+        order.setOrderStatus(status);
+        return orderRepository.save(order);
     }
 
     @Override
-    public Order cancelOrder(Long orderId, User user) {
-        return null;
+    public Order cancelOrder(Long orderId, User user) throws Exception {
+        Order order=findOrderById(orderId);
+        if(!user.getId().equals(order.getUser().getId())){
+            throw new Exception("Ypu don't have access to this order");
+        }
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        return orderRepository.save(order);
+    }
+
+    @Override
+    public OrderItem getOrderItemById(Long id) throws Exception {
+        return orderItemRepository.findById(id).orElseThrow(()-> new Exception("order item not exist"));
     }
 }

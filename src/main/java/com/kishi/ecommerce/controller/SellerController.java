@@ -1,8 +1,10 @@
 package com.kishi.ecommerce.controller;
 
+import com.kishi.ecommerce.config.JwtProvider;
 import com.kishi.ecommerce.domain.AccountStatus;
 import com.kishi.ecommerce.exceptions.SellerException;
 import com.kishi.ecommerce.model.Seller;
+import com.kishi.ecommerce.model.SellerReport;
 import com.kishi.ecommerce.model.VerificationCode;
 import com.kishi.ecommerce.repository.SellerRepository;
 import com.kishi.ecommerce.repository.VerificationCodeRepository;
@@ -10,6 +12,7 @@ import com.kishi.ecommerce.request.LoginRequest;
 import com.kishi.ecommerce.response.AuthResponse;
 import com.kishi.ecommerce.service.AuthService;
 import com.kishi.ecommerce.service.EmailService;
+import com.kishi.ecommerce.service.SellerReportService;
 import com.kishi.ecommerce.service.SellerService;
 import com.kishi.ecommerce.utils.OtpUtil;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,8 @@ public class SellerController {
     private final VerificationCodeRepository verificationCodeRepository;
     private final EmailService emailService;
     private final AuthService authService;
+    private final SellerReportService sellerReportService;
+    private final JwtProvider jwtProvider;
 
 
 
@@ -126,12 +131,14 @@ public class SellerController {
     }
 
 
-//    public ResponseEntity<SellerReport> getSellerReport(
-//            @RequestHeader("Authorization") String jwt)throws Exception{
-//        Seller seller = sellerService.getSellerProfile(jwt);
-//        SellerReport report = seller
-//
-//    }
+    @GetMapping("/report")
+    public ResponseEntity<SellerReport> getSellerReport(
+            @RequestHeader("Authorization") String jwt)throws Exception{
+        String email =jwtProvider.getEmailFromJwtToken(jwt);
+        Seller seller = sellerService.getSellerProfile(email);
+        SellerReport report = sellerReportService.getSellerReport(seller);
+        return new ResponseEntity<>(report,HttpStatus.OK);
+    }
 
     @GetMapping
     public ResponseEntity<List<Seller>> getAllSellers(@RequestParam(required = false)AccountStatus status){
